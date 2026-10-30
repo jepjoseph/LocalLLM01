@@ -44,16 +44,12 @@ export default function App() {
         .filter(
           (entry) =>
             (entry.role === "user" || entry.role === "assistant") &&
-            entry.content.length <= 4000
+            entry.content.length <= 4000,
         )
         .slice(-20)
         .map(({ role, content }) => ({ role, content }));
 
-      const result = await sendChatMessage(
-        content,
-        history,
-        controller.signal
-      );
+      const result = await sendChatMessage(content, history, controller.signal);
 
       if (activeRequest.current !== controller) return;
 
@@ -71,7 +67,7 @@ export default function App() {
       setError(
         requestError.name === "AbortError"
           ? "The AI request timed out. Please try again."
-          : "Unable to contact MOTICH AI. Check that Express and llamafile are running."
+          : "Unable to contact MOTICH AI. Check that Express and llamafile are running.",
       );
     } finally {
       clearTimeout(timeout);
@@ -106,16 +102,17 @@ export default function App() {
           </div>
         </div>
 
-        <button
-          className="new-chat-button"
-          onClick={handleNewChat}
-        >
+        <button className="new-chat-button" onClick={handleNewChat}>
           + New Chat
         </button>
 
         <div className="sidebar-footer">
-          <span className="status-dot" />
-          Local AI Workspace
+          <div className="workspace-status">
+            <span className="status-dot" />
+            <span>Local AI Workspace</span>
+          </div>
+
+          <span className="app-version">MOTICH AI · v1.0</span>
         </div>
       </aside>
 
@@ -144,9 +141,7 @@ export default function App() {
                 <div className="message-avatar">M</div>
                 <div className="message-body">
                   <div className="message-author">MOTICH AI</div>
-                  <div className="message-content">
-                    Generating response...
-                  </div>
+                  <div className="message-content">Generating response...</div>
                 </div>
               </div>
             )}
@@ -160,17 +155,13 @@ export default function App() {
         </section>
 
         <div className="composer-area">
-          <ChatComposer
-            onSend={handleSend}
-            isLoading={isLoading}
-          />
+          <ChatComposer onSend={handleSend} isLoading={isLoading} />
           <p className="composer-note">
-            MOTICH AI uses a locally hosted language model.
-            Responses may contain inaccuracies.
+            MOTICH AI uses a locally hosted language model. Responses may
+            contain inaccuracies.
           </p>
         </div>
       </main>
     </div>
   );
 }
-
