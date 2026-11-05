@@ -16,7 +16,7 @@ $model = Join-Path $root "AI-Models-Storage\general\Qwen3.5-0.8B-Q8_0.gguf"
 # Server configuration
 $hostAddress = "127.0.0.1"
 $port = 8080
-$contextSize = 4096
+$contextSize = 8192
 $threads = 8
 
 Write-Host ""

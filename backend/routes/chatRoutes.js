@@ -3,7 +3,7 @@ const { generateResponse } = require("../services/llmService");
 
 const router = express.Router();
 
-const MAX_MESSAGE_LENGTH = 10000;
+const MAX_MESSAGE_LENGTH = 20000;
 const MAX_HISTORY_MESSAGES = 20;
 const MAX_HISTORY_CONTENT_LENGTH = 4000;
 
@@ -36,7 +36,7 @@ router.post("/", async (req, res) => {
       (entry.role === "user" || entry.role === "assistant") &&
       typeof entry.content === "string" &&
       entry.content.trim().length > 0 &&
-      entry.content.length <= MAX_HISTORY_CONTENT_LENGTH
+      entry.content.length <= MAX_HISTORY_CONTENT_LENGTH,
   );
 
   if (!validHistory) {
@@ -71,10 +71,50 @@ router.post("/", async (req, res) => {
       response: result.content,
     });
   } catch (error) {
-    console.error("Chat generation failed:", error);
+    console.error("Chat generation failed:", {
+      code: error.code || "UNEXPECTED_ERROR",
+      message: error.message,
+      details: error.details,
+    });
 
-    return res.status(502).json({
-      error: "Unable to generate an AI response.",
+    const errorMap = {
+      LLM_TIMEOUT: {
+        status: 504,
+        message: "AI inference timed out. Please try again.",
+      },
+      LLM_CONNECTION_ERROR: {
+        status: 503,
+        message: "AI inference service is unavailable.",
+      },
+      LLM_HTTP_ERROR: {
+        status: 502,
+        message: "AI inference service returned an error.",
+      },
+      LLM_INVALID_JSON: {
+        status: 502,
+        message: "AI inference service returned invalid data.",
+      },
+      LLM_INVALID_RESPONSE: {
+        status: 502,
+        message: "AI inference service returned an invalid response.",
+      },
+      LLM_EMPTY_RESPONSE: {
+        status: 502,
+        message: "AI inference service returned an empty response.",
+      },
+    };
+
+    const mappedError = errorMap[error.code] || {
+      status: 500,
+      message: "An unexpected server error occurred.",
+    };
+
+    return res.status(mappedError.status).json({
+      error: mappedError.message,
+      code:
+        error.code && errorMap[error.code]
+          ? error.code
+          : "INTERNAL_SERVER_ERROR",
     });
   }
 });

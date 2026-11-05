@@ -24,7 +24,7 @@ export default function App() {
     const controller = new AbortController();
     activeRequest.current = controller;
 
-    const timeout = setTimeout(() => controller.abort(), 130000);
+    const timeout = setTimeout(() => controller.abort(), 250000);
 
     setError("");
     setIsLoading(true);
@@ -64,11 +64,21 @@ export default function App() {
     } catch (requestError) {
       if (activeRequest.current !== controller) return;
 
-      setError(
-        requestError.name === "AbortError"
-          ? "The AI request timed out. Please try again."
-          : "Unable to contact MOTICH AI. Check that Express and llamafile are running.",
-      );
+      console.error("MOTICH AI chat request failed:", {
+        name: requestError.name,
+        code: requestError.code,
+        status: requestError.status,
+        message: requestError.message,
+      });
+
+      if (requestError.name === "AbortError") {
+        setError("The AI request was canceled or timed out.");
+      } else {
+        setError(
+          requestError.message ||
+            "An unexpected error occurred while contacting MOTICH AI.",
+        );
+      }
     } finally {
       clearTimeout(timeout);
 
@@ -112,7 +122,7 @@ export default function App() {
             <span>Local AI Workspace</span>
           </div>
 
-          <span className="app-version">MOTICH AI · v2.0</span>
+          <span className="app-version">MOTICH AI · v2.0.1</span>
         </div>
       </aside>
 
