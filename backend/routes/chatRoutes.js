@@ -1,6 +1,7 @@
-﻿const express = require("express");
-const { generateResponse } = require("../services/llmService");
+const express = require("express");
+const { generateResponse, resolveModel } = require("../services/llmService");
 const { getSystemPrompt } = require("../services/promptService");
+const { selectModel } = require("../services/modelRouterService");
 
 const router = express.Router();
 
@@ -8,10 +9,12 @@ const MAX_MESSAGE_LENGTH = 20000;
 const MAX_HISTORY_MESSAGES = 20;
 const MAX_HISTORY_CONTENT_LENGTH = 4000;
 
-const SYSTEM_PROMPT = getSystemPrompt("general");
-
 router.post("/", async (req, res) => {
-  const { message, history = [] } = req.body ?? {};
+  const {
+    message,
+    history = [],
+    model = "auto",
+  } = req.body ?? {};
 
   if (typeof message !== "string" || !message.trim()) {
     return res.status(400).json({
@@ -39,7 +42,7 @@ router.post("/", async (req, res) => {
       (entry.role === "user" || entry.role === "assistant") &&
       typeof entry.content === "string" &&
       entry.content.trim().length > 0 &&
-      entry.content.length <= MAX_HISTORY_CONTENT_LENGTH,
+      entry.content.length <= MAX_HISTORY_CONTENT_LENGTH
   );
 
   if (!validHistory) {
@@ -48,10 +51,21 @@ router.post("/", async (req, res) => {
     });
   }
 
+  let selected;
+
+  try {
+    selected = await selectModel(model, message.trim(), history);
+  } catch (error) {
+    return res.status(400).json({
+      error: error.message,
+      code: error.code || "LLM_INVALID_MODEL",
+    });
+  }
+
   const messages = [
     {
       role: "system",
-      content: SYSTEM_PROMPT,
+      content: getSystemPrompt(selected.modelType),
     },
     ...history.map((entry) => ({
       role: entry.role,
@@ -64,10 +78,13 @@ router.post("/", async (req, res) => {
   ];
 
   try {
-    const result = await generateResponse(messages);
+    const result = await generateResponse(messages, selected.modelType);
 
     return res.status(200).json({
       model: result.model,
+      modelType: result.modelType,
+      selectionMode: selected.selectionMode,
+      routingMethod: selected.routingMethod,
       response: result.content,
     });
   } catch (error) {
@@ -111,10 +128,9 @@ router.post("/", async (req, res) => {
 
     return res.status(mappedError.status).json({
       error: mappedError.message,
-      code:
-        error.code && errorMap[error.code]
-          ? error.code
-          : "INTERNAL_SERVER_ERROR",
+      code: error.code && errorMap[error.code]
+        ? error.code
+        : "INTERNAL_SERVER_ERROR",
     });
   }
 });

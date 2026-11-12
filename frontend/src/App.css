@@ -1,4 +1,4 @@
-﻿.app-shell {
+.app-shell {
   display: flex;
   min-height: 100vh;
 }
@@ -259,4 +259,26 @@
   .composer-area {
     padding: 18px;
   }
+}
+
+/* Intelligent model selection */
+.model-control {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  max-width: min(100%, 360px);
+}
+.model-control label { color: #cbd5e1; font-size: 12px; font-weight: 600; }
+.model-control select {
+  max-width: 100%; width: 100%;
+  background: #17243a; color: #f8fafc;
+  border: 1px solid #334155; border-radius: 9px;
+  padding: 9px 10px; font: inherit; font-size: 12px;
+}
+.model-control select:focus-visible { outline: 2px solid #5eead4; outline-offset: 2px; }
+.model-help { color: #94a3b8; font-size: 11px; }
+@media (max-width: 700px) {
+  .topbar { align-items: flex-start; flex-wrap: wrap; }
+  .model-control { width: 100%; max-width: 100%; }
 }

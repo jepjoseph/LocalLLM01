@@ -1,0 +1,580 @@
+﻿
+==============================================
+GIT BRANCH AND REMOTE
+==============================================
+Branch: main
+
+origin	https://github.com/jepjoseph/LocalLLM01.git (fetch)
+origin	https://github.com/jepjoseph/LocalLLM01.git (push)
+
+==============================================
+WORKING TREE STATUS
+==============================================
+ M backend/config/models.json
+ M backend/routes/chatRoutes.js
+ M backend/services/llmService.js
+ M frontend/src/App.css
+ M frontend/src/App.jsx
+ M frontend/src/services/chatService.js
+?? Persistence/backups/intelligent-routing/20261112-161543/app.original
+?? Persistence/backups/intelligent-routing/20261112-161543/chat.original
+?? Persistence/backups/intelligent-routing/20261112-161543/css.original
+?? Persistence/backups/intelligent-routing/20261112-161543/route.original
+?? Persistence/backups/model-registry/models-before-coding-20261112-152622.json
+?? Persistence/backups/model-router/20261112-152903/chatRoutes.js
+?? Persistence/backups/model-router/20261112-152903/llmService.js
+?? Persistence/backups/qwen-coder-startup/Start-QwenCoder-before-repair-20261112-152054.ps1
+?? Persistence/reports/intelligent-model-routing-inspection.txt
+?? Persistence/scripts/Install-MotichIntelligentRouting.ps1
+?? backend/services/modelRouterService.js
+?? scripts/Start-QwenCoder.ps1
+
+==============================================
+CURRENTLY STAGED FILES
+==============================================
+
+==============================================
+SOURCE FILE EXISTENCE
+==============================================
+backend/config/models.json | Exists: True
+backend/services/llmService.js | Exists: True
+backend/services/modelRouterService.js | Exists: True
+backend/routes/chatRoutes.js | Exists: True
+frontend/src/App.jsx | Exists: True
+frontend/src/App.css | Exists: True
+frontend/src/services/chatService.js | Exists: True
+scripts/Start-QwenCoder.ps1 | Exists: True
+
+==============================================
+TRACKED SOURCE DIFF SUMMARY
+==============================================
+ backend/config/models.json           |  44 ++++-----
+ backend/routes/chatRoutes.js         |  40 ++++++---
+ backend/services/llmService.js       | 167 ++++++++++++++++++++++-------------
+ frontend/src/App.css                 |  24 ++++-
+ frontend/src/App.jsx                 |  33 ++++++-
+ frontend/src/services/chatService.js |   4 +-
+ 6 files changed, 212 insertions(+), 100 deletions(-)
+
+==============================================
+TRACKED SOURCE DIFF DETAILS
+==============================================
+diff --git a/backend/config/models.json b/backend/config/models.json
+index db41916..72d9884 100644
+--- a/backend/config/models.json
++++ b/backend/config/models.json
+@@ -1,23 +1,23 @@
+-{
+-  "defaultModel": "general",
+-  "models": {
+-    "general": {
+-      "name": "Qwen3.5-0.8B",
+-      "role": "general",
+-      "file": "AI-Models-Storage/general/Qwen3.5-0.8B-Q8_0.gguf",
+-      "endpoint": "http://127.0.0.1:8080/v1/chat/completions",
+-      "enabled": true,
+-      "temperature": 0.2,
+-      "maxTokens": 1024
+-    },
+-    "coding": {
+-      "name": "Qwen3-Coder-30B-A3B",
+-      "role": "coding",
+-      "file": "AI-Models-Storage/coding/Qwen3-Coder-30B-A3B-Instruct-Q4_K_M.gguf",
+-      "endpoint": null,
+-      "enabled": false,
+-      "temperature": 0.2,
+-      "maxTokens": 2048
+-    }
+-  }
++∩╗┐{
++    "defaultModel":  "general",
++    "models":  {
++                   "general":  {
++                                   "name":  "Qwen3.5-0.8B",
++                                   "role":  "general",
++                                   "file":  "AI-Models-Storage/general/Qwen3.5-0.8B-Q8_0.gguf",
++                                   "endpoint":  "http://127.0.0.1:8080/v1/chat/completions",
++                                   "enabled":  true,
++                                   "temperature":  0.2,
++                                   "maxTokens":  1024
++                               },
++                   "coding":  {
++                                  "name":  "Qwen3-Coder-30B-A3B",
++                                  "role":  "coding",
++                                  "file":  "AI-Models-Storage/coding/Qwen3-Coder-30B-A3B-Instruct-Q4_K_M.gguf",
++                                  "endpoint":  "http://127.0.0.1:8082/v1/chat/completions",
++                                  "enabled":  true,
++                                  "temperature":  0.2,
++                                  "maxTokens":  2048
++                              }
++               }
+ }
+diff --git a/backend/routes/chatRoutes.js b/backend/routes/chatRoutes.js
+index b5ef600..be9e116 100644
+--- a/backend/routes/chatRoutes.js
++++ b/backend/routes/chatRoutes.js
+@@ -1,6 +1,7 @@
+-∩╗┐const express = require("express");
+-const { generateResponse } = require("../services/llmService");
++const express = require("express");
++const { generateResponse, resolveModel } = require("../services/llmService");
+ const { getSystemPrompt } = require("../services/promptService");
++const { selectModel } = require("../services/modelRouterService");
+ 
+ const router = express.Router();
+ 
+@@ -8,10 +9,12 @@ const MAX_MESSAGE_LENGTH = 20000;
+ const MAX_HISTORY_MESSAGES = 20;
+ const MAX_HISTORY_CONTENT_LENGTH = 4000;
+ 
+-const SYSTEM_PROMPT = getSystemPrompt("general");
+-
+ router.post("/", async (req, res) => {
+-  const { message, history = [] } = req.body ?? {};
++  const {
++    message,
++    history = [],
++    model = "auto",
++  } = req.body ?? {};
+ 
+   if (typeof message !== "string" || !message.trim()) {
+     return res.status(400).json({
+@@ -39,7 +42,7 @@ router.post("/", async (req, res) => {
+       (entry.role === "user" || entry.role === "assistant") &&
+       typeof entry.content === "string" &&
+       entry.content.trim().length > 0 &&
+-      entry.content.length <= MAX_HISTORY_CONTENT_LENGTH,
++      entry.content.length <= MAX_HISTORY_CONTENT_LENGTH
+   );
+ 
+   if (!validHistory) {
+@@ -48,10 +51,21 @@ router.post("/", async (req, res) => {
+     });
+   }
+ 
++  let selected;
++
++  try {
++    selected = await selectModel(model, message.trim(), history);
++  } catch (error) {
++    return res.status(400).json({
++      error: error.message,
++      code: error.code || "LLM_INVALID_MODEL",
++    });
++  }
++
+   const messages = [
+     {
+       role: "system",
+-      content: SYSTEM_PROMPT,
++      content: getSystemPrompt(selected.modelType),
+     },
+     ...history.map((entry) => ({
+       role: entry.role,
+@@ -64,10 +78,13 @@ router.post("/", async (req, res) => {
+   ];
+ 
+   try {
+-    const result = await generateResponse(messages);
++    const result = await generateResponse(messages, selected.modelType);
+ 
+     return res.status(200).json({
+       model: result.model,
++      modelType: result.modelType,
++      selectionMode: selected.selectionMode,
++      routingMethod: selected.routingMethod,
+       response: result.content,
+     });
+   } catch (error) {
+@@ -111,10 +128,9 @@ router.post("/", async (req, res) => {
+ 
+     return res.status(mappedError.status).json({
+       error: mappedError.message,
+-      code:
+-        error.code && errorMap[error.code]
+-          ? error.code
+-          : "INTERNAL_SERVER_ERROR",
++      code: error.code && errorMap[error.code]
++        ? error.code
++        : "INTERNAL_SERVER_ERROR",
+     });
+   }
+ });
+diff --git a/backend/services/llmService.js b/backend/services/llmService.js
+index f3d7d59..ac6c813 100644
+--- a/backend/services/llmService.js
++++ b/backend/services/llmService.js
+@@ -1,111 +1,158 @@
+-∩╗┐const LLAMA_CPP_URL = "http://127.0.0.1:8080/v1/chat/completions";
+-const MODEL_ID =
+-  "D:\\FAU\\Session Fall 2026\\AI201\\LocalLLM01\\AI-Models-Storage\\general\\Qwen3.5-0.8B-Q8_0.gguf";
++∩╗┐const modelRegistry = require("../config/models.json");
+ 
+ class LLMServiceError extends Error {
+   constructor(code, message, details = {}) {
+     super(message);
+-
+     this.name = "LLMServiceError";
+     this.code = code;
+     this.details = details;
+   }
+ }
+ 
+-async function generateResponse(messages) {
+-  let response;
++function resolveModel(modelType = modelRegistry.defaultModel) {
++  if (typeof modelType !== "string") {
++    throw new LLMServiceError(
++      "LLM_INVALID_MODEL",
++      "Model selection must be a string."
++    );
++  }
+ 
+-  // 1. Send the inference request.
+-  try {
+-    response = await fetch(LLAMA_CPP_URL, {
+-      method: "POST",
+-      headers: {
+-        "Content-Type": "application/json",
+-      },
+-      body: JSON.stringify({
+-        model: MODEL_ID,
+-        messages,
+-        max_tokens: 1024,
+-        temperature: 0.2,
+-        stream: false,
+-        chat_template_kwargs: {
+-          enable_thinking: false,
+-        },
+-      }),
+-      signal: AbortSignal.timeout(240000),
+-    });
+-  } catch (error) {
+-    // 2. Classify timeout errors.
+-    if (error.name === "TimeoutError" || error.name === "AbortError") {
+-      throw new LLMServiceError(
+-        "LLM_TIMEOUT",
+-        "AI inference request timed out.",
+-        { timeoutMs: 240000 },
+-      );
+-    }
++  const config = Object.prototype.hasOwnProperty.call(
++    modelRegistry.models,
++    modelType
++  )
++    ? modelRegistry.models[modelType]
++    : null;
+ 
+-    // 3. Classify connection failures.
++  if (!config || !config.enabled || !config.endpoint) {
+     throw new LLMServiceError(
+-      "LLM_CONNECTION_ERROR",
+-      "Unable to connect to the AI inference server.",
+-      { cause: error.message },
++      "LLM_INVALID_MODEL",
++      "The requested AI model is unavailable."
+     );
+   }
+ 
+-  // 4. Classify HTTP errors.
+-  if (!response.ok) {
++  const endpoint = new URL(config.endpoint);
++
++  if (
++    endpoint.protocol !== "http:" ||
++    endpoint.hostname !== "127.0.0.1" ||
++    !["8080", "8082"].includes(endpoint.port) ||
++    endpoint.pathname !== "/v1/chat/completions"
++  ) {
+     throw new LLMServiceError(
+-      "LLM_HTTP_ERROR",
+-      `AI inference server returned HTTP ${response.status}.`,
+-      { status: response.status },
++      "LLM_INVALID_CONFIGURATION",
++      "The AI model endpoint configuration is invalid."
+     );
+   }
+ 
++  return { modelType, config };
++}
++
++async function generateResponse(messages, modelType) {
++  const selected = resolveModel(modelType);
++  const { config } = selected;
++
++  // Keep the current timeout contract until the frontend
++  // and backend timeouts are updated together.
++  const timeoutMs = 240000;
++
++  const controller = new AbortController();
++  const timeout = setTimeout(() => controller.abort(), timeoutMs);
++
++  let response;
+   let data;
+ 
+-  // 5. Parse and validate JSON.
+   try {
+-    data = await response.json();
+-  } catch (error) {
+-    if (error.name === "TimeoutError" || error.name === "AbortError") {
++    try {
++      response = await fetch(config.endpoint, {
++        method: "POST",
++        headers: {
++          "Content-Type": "application/json",
++        },
++        body: JSON.stringify({
++          messages,
++          max_tokens: config.maxTokens,
++          temperature: config.temperature,
++          stream: false,
++          chat_template_kwargs: {
++            enable_thinking: false,
++          },
++        }),
++        signal: controller.signal,
++      });
++    } catch (error) {
++      if (
++        controller.signal.aborted ||
++        error.name === "TimeoutError" ||
++        error.name === "AbortError"
++      ) {
++        throw new LLMServiceError(
++          "LLM_TIMEOUT",
++          "AI inference request timed out.",
++          { timeoutMs, modelType: selected.modelType }
++        );
++      }
++
+       throw new LLMServiceError(
+-        "LLM_TIMEOUT",
+-        "AI inference response timed out.",
+-        { timeoutMs: 240000 },
++        "LLM_CONNECTION_ERROR",
++        "Unable to connect to the AI inference server.",
++        { cause: error.message, modelType: selected.modelType }
+       );
+     }
+ 
+-    throw new LLMServiceError(
+-      "LLM_INVALID_JSON",
+-      "AI inference server returned invalid JSON.",
+-      { cause: error.message },
+-    );
++    if (!response.ok) {
++      throw new LLMServiceError(
++        "LLM_HTTP_ERROR",
++        `AI inference server returned HTTP ${response.status}.`,
++        { status: response.status, modelType: selected.modelType }
++      );
++    }
++
++    try {
++      data = await response.json();
++    } catch (error) {
++      if (controller.signal.aborted) {
++        throw new LLMServiceError(
++          "LLM_TIMEOUT",
++          "AI inference response timed out.",
++          { timeoutMs, modelType: selected.modelType }
++        );
++      }
++
++      throw new LLMServiceError(
++        "LLM_INVALID_JSON",
++        "AI inference server returned invalid JSON.",
++        { cause: error.message }
++      );
++    }
++  } finally {
++    clearTimeout(timeout);
+   }
+ 
+-  // 6. Validate response structure.
+   if (!data || !Array.isArray(data.choices) || !data.choices[0]?.message) {
+     throw new LLMServiceError(
+       "LLM_INVALID_RESPONSE",
+-      "AI inference server returned an invalid response structure.",
++      "AI inference server returned an invalid response structure."
+     );
+   }
+ 
+   const content = data.choices[0].message.content;
+ 
+-  // 7. Validate generated content.
+   if (typeof content !== "string" || !content.trim()) {
+     throw new LLMServiceError(
+       "LLM_EMPTY_RESPONSE",
+-      "AI inference server returned an empty response.",
++      "AI inference server returned an empty response."
+     );
+   }
+ 
+   return {
+-    model: data.model || MODEL_ID,
++    model: data.model || config.name,
++    modelType: selected.modelType,
+     content,
+   };
+ }
+ 
+ module.exports = {
+   generateResponse,
++  resolveModel,
+ };
+diff --git a/frontend/src/App.css b/frontend/src/App.css
+index fe81c27..538029e 100644
+--- a/frontend/src/App.css
++++ b/frontend/src/App.css
+@@ -1,4 +1,4 @@
+-∩╗┐.app-shell {
++.app-shell {
+   display: flex;
+   min-height: 100vh;
+ }
+@@ -260,3 +260,25 @@
+     padding: 18px;
+   }
+ }
++
++/* Intelligent model selection */
++.model-control {
++  display: flex;
++  flex-direction: column;
++  align-items: flex-start;
++  gap: 5px;
++  max-width: min(100%, 360px);
++}
++.model-control label { color: #cbd5e1; font-size: 12px; font-weight: 600; }
++.model-control select {
++  max-width: 100%; width: 100%;
++  background: #17243a; color: #f8fafc;
++  border: 1px solid #334155; border-radius: 9px;
++  padding: 9px 10px; font: inherit; font-size: 12px;
++}
++.model-control select:focus-visible { outline: 2px solid #5eead4; outline-offset: 2px; }
++.model-help { color: #94a3b8; font-size: 11px; }
++@media (max-width: 700px) {
++  .topbar { align-items: flex-start; flex-wrap: wrap; }
++  .model-control { width: 100%; max-width: 100%; }
++}
+\ No newline at end of file
+diff --git a/frontend/src/App.jsx b/frontend/src/App.jsx
+index f91025d..c58f7e5 100644
+--- a/frontend/src/App.jsx
++++ b/frontend/src/App.jsx
+@@ -1,4 +1,4 @@
+-∩╗┐import { useRef, useState } from "react";
++import { useRef, useState } from "react";
+ import ChatMessage from "./components/ChatMessage";
+ import ChatComposer from "./components/ChatComposer";
+ import { sendChatMessage } from "./services/chatService";
+@@ -13,6 +13,7 @@ const welcomeMessage = {
+ 
+ export default function App() {
+   const [messages, setMessages] = useState([welcomeMessage]);
++  const [modelMode, setModelMode] = useState("auto");
+   const [isLoading, setIsLoading] = useState(false);
+   const [error, setError] = useState("");
+ 
+@@ -49,7 +50,7 @@ export default function App() {
+         .slice(-20)
+         .map(({ role, content }) => ({ role, content }));
+ 
+-      const result = await sendChatMessage(content, history, controller.signal);
++      const result = await sendChatMessage(content, history, controller.signal, modelMode);
+ 
+       if (activeRequest.current !== controller) return;
+ 
+@@ -59,6 +60,7 @@ export default function App() {
+           id: crypto.randomUUID(),
+           role: "assistant",
+           content: result.response,
++          modelType: result.modelType,
+         },
+       ]);
+     } catch (requestError) {
+@@ -89,6 +91,19 @@ export default function App() {
+     }
+   }
+ 
++  function handleModelChange(event) {
++    const nextMode = event.target.value;
++    if (nextMode === modelMode) return;
++    if (activeRequest.current) {
++      activeRequest.current.abort();
++      activeRequest.current = null;
++    }
++    setModelMode(nextMode);
++    setMessages([welcomeMessage]);
++    setError("");
++    setIsLoading(false);
++  }
++
+   function handleNewChat() {
+     if (activeRequest.current) {
+       activeRequest.current.abort();
+@@ -133,7 +148,19 @@ export default function App() {
+             <p>Powered by MOTICH</p>
+           </div>
+ 
+-          <span className="model-badge">Local Model</span>
++                    <div className="model-control">
++            <label htmlFor="model-mode">Model selection</label>
++            <select id="model-mode" value={modelMode} onChange={handleModelChange}>
++              <option value="auto">Auto - Intelligent routing (recommended)</option>
++              <option value="general">General - Qwen3.5-0.8B</option>
++              <option value="coding">Coding - Qwen3-Coder-30B-A3B</option>
++            </select>
++            <span className="model-help">
++              {modelMode === "auto"
++                ? "Backend automatically selects the best model for the question."
++                : `All requests use the ${modelMode} model.`}
++            </span>
++          </div>
+         </header>
+ 
+         <section className="chat-area" aria-label="Chat conversation">
+diff --git a/frontend/src/services/chatService.js b/frontend/src/services/chatService.js
+index d50e849..cb37696 100644
+--- a/frontend/src/services/chatService.js
++++ b/frontend/src/services/chatService.js
+@@ -2,7 +2,7 @@ const API_URL = import.meta.env.PROD
+   ? "/ai/api/chat"
+   : "http://127.0.0.1:5006/api/chat";
+ 
+-export async function sendChatMessage(message, history, signal) {
++export async function sendChatMessage(message, history, signal, model = "auto") {
+   let response;
+ 
+   try {
+@@ -11,7 +11,7 @@ export async function sendChatMessage(message, history, signal) {
+       headers: {
+         "Content-Type": "application/json",
+       },
+-      body: JSON.stringify({ message, history }),
++      body: JSON.stringify({ message, history, model }),
+       signal,
+     });
+   } catch (error) {
+
+==============================================
+EXISTING STAGED DIFF
+==============================================
+
+==============================================
+SOURCE FILE TRACKING STATUS
+==============================================
+backend/config/models.json | Tracked: True
+backend/services/llmService.js | Tracked: True
+backend/services/modelRouterService.js | Tracked: False
+backend/routes/chatRoutes.js | Tracked: True
+frontend/src/App.jsx | Tracked: True
+frontend/src/App.css | Tracked: True
+frontend/src/services/chatService.js | Tracked: True
+scripts/Start-QwenCoder.ps1 | Tracked: False
+
+==============================================
+LARGE OR SENSITIVE UNTRACKED FILES
+==============================================

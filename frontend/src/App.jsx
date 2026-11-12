@@ -1,4 +1,4 @@
-﻿import { useRef, useState } from "react";
+import { useRef, useState } from "react";
 import ChatMessage from "./components/ChatMessage";
 import ChatComposer from "./components/ChatComposer";
 import { sendChatMessage } from "./services/chatService";
@@ -13,6 +13,7 @@ const welcomeMessage = {
 
 export default function App() {
   const [messages, setMessages] = useState([welcomeMessage]);
+  const [modelMode, setModelMode] = useState("auto");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -49,7 +50,7 @@ export default function App() {
         .slice(-20)
         .map(({ role, content }) => ({ role, content }));
 
-      const result = await sendChatMessage(content, history, controller.signal);
+      const result = await sendChatMessage(content, history, controller.signal, modelMode);
 
       if (activeRequest.current !== controller) return;
 
@@ -59,6 +60,7 @@ export default function App() {
           id: crypto.randomUUID(),
           role: "assistant",
           content: result.response,
+          modelType: result.modelType,
         },
       ]);
     } catch (requestError) {
@@ -87,6 +89,19 @@ export default function App() {
         setIsLoading(false);
       }
     }
+  }
+
+  function handleModelChange(event) {
+    const nextMode = event.target.value;
+    if (nextMode === modelMode) return;
+    if (activeRequest.current) {
+      activeRequest.current.abort();
+      activeRequest.current = null;
+    }
+    setModelMode(nextMode);
+    setMessages([welcomeMessage]);
+    setError("");
+    setIsLoading(false);
   }
 
   function handleNewChat() {
@@ -133,7 +148,19 @@ export default function App() {
             <p>Powered by MOTICH</p>
           </div>
 
-          <span className="model-badge">Local Model</span>
+                    <div className="model-control">
+            <label htmlFor="model-mode">Model selection</label>
+            <select id="model-mode" value={modelMode} onChange={handleModelChange}>
+              <option value="auto">Auto - Intelligent routing (recommended)</option>
+              <option value="general">General - Qwen3.5-0.8B</option>
+              <option value="coding">Coding - Qwen3-Coder-30B-A3B</option>
+            </select>
+            <span className="model-help">
+              {modelMode === "auto"
+                ? "Backend automatically selects the best model for the question."
+                : `All requests use the ${modelMode} model.`}
+            </span>
+          </div>
         </header>
 
         <section className="chat-area" aria-label="Chat conversation">

@@ -2,7 +2,7 @@ const API_URL = import.meta.env.PROD
   ? "/ai/api/chat"
   : "http://127.0.0.1:5006/api/chat";
 
-export async function sendChatMessage(message, history, signal) {
+export async function sendChatMessage(message, history, signal, model = "auto") {
   let response;
 
   try {
@@ -11,7 +11,7 @@ export async function sendChatMessage(message, history, signal) {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ message, history }),
+      body: JSON.stringify({ message, history, model }),
       signal,
     });
   } catch (error) {
