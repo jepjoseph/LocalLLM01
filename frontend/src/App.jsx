@@ -122,7 +122,7 @@ export default function App() {
             <span>Local AI Workspace</span>
           </div>
 
-          <span className="app-version">MOTICH AI · v2.0.1</span>
+          <span className="app-version">MOTICH AI · v2.1.0</span>
         </div>
       </aside>
 

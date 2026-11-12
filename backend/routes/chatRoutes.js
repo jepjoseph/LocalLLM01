@@ -1,11 +1,14 @@
 ﻿const express = require("express");
 const { generateResponse } = require("../services/llmService");
+const { getSystemPrompt } = require("../services/promptService");
 
 const router = express.Router();
 
 const MAX_MESSAGE_LENGTH = 20000;
 const MAX_HISTORY_MESSAGES = 20;
 const MAX_HISTORY_CONTENT_LENGTH = 4000;
+
+const SYSTEM_PROMPT = getSystemPrompt("general");
 
 router.post("/", async (req, res) => {
   const { message, history = [] } = req.body ?? {};
@@ -48,10 +51,7 @@ router.post("/", async (req, res) => {
   const messages = [
     {
       role: "system",
-      content:
-        "You are MOTICH AI, a helpful technical assistant. " +
-        "Use the conversation history to answer follow-up questions accurately. " +
-        "If information is missing, say so rather than inventing details.",
+      content: SYSTEM_PROMPT,
     },
     ...history.map((entry) => ({
       role: entry.role,

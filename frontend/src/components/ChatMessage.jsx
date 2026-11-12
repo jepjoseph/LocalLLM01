@@ -1,4 +1,5 @@
-﻿export default function ChatMessage({ role, content }) {
+import ReactMarkdown from "react-markdown";
+export default function ChatMessage({ role, content }) {
   const isUser = role === "user";
 
   return (
@@ -11,7 +12,7 @@
         <div className="message-author">
           {isUser ? "You" : "MOTICH AI"}
         </div>
-        <div className="message-content">{content}</div>
+        <div className="message-content">{isUser ? content : <ReactMarkdown>{content}</ReactMarkdown>}</div>
       </div>
     </div>
   );

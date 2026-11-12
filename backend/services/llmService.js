@@ -26,7 +26,7 @@ async function generateResponse(messages) {
         model: MODEL_ID,
         messages,
         max_tokens: 1024,
-        temperature: 0.7,
+        temperature: 0.2,
         stream: false,
         chat_template_kwargs: {
           enable_thinking: false,
