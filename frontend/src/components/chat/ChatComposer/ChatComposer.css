@@ -1,0 +1,2 @@
+.chat-composer { max-width: var(--chat-max-width); background: var(--color-bg-surface); border-color: var(--color-border); border-radius: var(--radius-lg); }
+.chat-composer button { background: var(--color-brand-primary); }

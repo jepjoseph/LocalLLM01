@@ -1,0 +1,69 @@
+/*
+ * MOTICH AI 2.0 - Global Design Tokens
+ * Existing visual palette preserved.
+ */
+
+:root {
+  /* Backgrounds */
+  --color-bg-primary: #101827;
+  --color-bg-sidebar: #0b1220;
+  --color-bg-surface: #17243a;
+  --color-bg-surface-hover: #24354f;
+
+  /* Text */
+  --color-text-primary: #f8fafc;
+  --color-text-secondary: #cbd5e1;
+  --color-text-muted: #94a3b8;
+  --color-text-subtle: #64748b;
+
+  /* Brand */
+  --color-brand-primary: #0d9488;
+  --color-brand-light: #5eead4;
+  --color-brand-icon-bg: #164e63;
+  --color-brand-icon-text: #67e8f9;
+
+  /* Borders */
+  --color-border: #334155;
+  --color-border-subtle: #263449;
+
+  /* Status */
+  --color-success: #22c55e;
+  --color-error: #fca5a5;
+
+  /* Typography */
+  --font-family-base: Inter, "Segoe UI", Arial, sans-serif;
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-md: 14px;
+  --font-size-base: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  /* Border radius */
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+
+  /* Layout */
+  --sidebar-width: 260px;
+  --chat-max-width: 850px;
+
+  /* Layers */
+  --z-sidebar: 20;
+  --z-header: 30;
+  --z-footer: 30;
+  --z-modal: 100;
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+}

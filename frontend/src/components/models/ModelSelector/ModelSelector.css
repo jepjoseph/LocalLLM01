@@ -1,0 +1,3 @@
+.model-control select { background: var(--color-bg-surface); color: var(--color-text-primary); border-color: var(--color-border); }
+.model-control label { color: var(--color-text-secondary); }
+.model-help { color: var(--color-text-muted); }

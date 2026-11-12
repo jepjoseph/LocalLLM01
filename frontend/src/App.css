@@ -282,3 +282,10 @@
   .topbar { align-items: flex-start; flex-wrap: wrap; }
   .model-control { width: 100%; max-width: 100%; }
 }
+/* Phase 3: viewport-constrained layout; only conversation messages scroll. */
+.app-viewport { height: 100dvh; min-height: 0; overflow: hidden; }
+.app-main { min-height: 0; height: 100%; overflow: hidden; }
+@media (max-width: 700px) {
+  .app-viewport { flex-direction: column; }
+  .app-main { flex: 1 1 auto; height: auto; min-height: 0; }
+}

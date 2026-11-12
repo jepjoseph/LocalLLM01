@@ -1,0 +1,5 @@
+.app-header { flex: 0 0 auto; background: var(--color-bg-primary); }
+.header-actions { display: flex; align-items: center; gap: var(--space-4); min-width: 0; }
+.login-button { padding: 9px 14px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-surface); color: var(--color-text-primary); }
+.login-button:disabled { opacity: .55; cursor: not-allowed; }
+@media (max-width: 700px) { .header-actions { width: 100%; flex-wrap: wrap; } }

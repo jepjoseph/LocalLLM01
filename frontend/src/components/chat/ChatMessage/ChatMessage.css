@@ -1,0 +1,3 @@
+.message-content { color: var(--color-text-secondary); }
+.message-avatar { background: var(--color-brand-icon-bg); color: var(--color-brand-icon-text); }
+.message-user .message-avatar { background: var(--color-border); }

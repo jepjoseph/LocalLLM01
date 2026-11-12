@@ -1,0 +1,4 @@
+.app-sidebar { flex: 0 0 var(--sidebar-width); width: var(--sidebar-width); min-height: 0; background: var(--color-bg-sidebar); overflow-y: auto; }
+.app-sidebar .new-chat-button { background: var(--color-bg-surface); color: var(--color-text-primary); border-color: var(--color-border); }
+.app-sidebar .new-chat-button:hover { background: var(--color-bg-surface-hover); }
+@media (max-width: 700px) { .app-sidebar { flex: 0 0 auto; width: 100%; max-height: 170px; } .app-sidebar .sidebar-footer { display: none; } }
